@@ -5,6 +5,9 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 
+const authRoutes = require('./routes/authRoutes');
+const authMiddleware = require('./middleware/authMiddleware');
+
 const app = express();
 
 app.use(cors());
@@ -16,8 +19,22 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+app.use('/api/auth', authRoutes);
+
+app.get('/api/protected/me', authMiddleware, (req, res) => {
+  res.json({
+    success: true,
+    data: {
+      user: req.user
+    }
+  });
+});
+
 app.use('/api', (req, res) => {
-  res.status(404).json({ message: 'API route not found' });
+  res.status(404).json({
+    success: false,
+    message: 'API route not found'
+  });
 });
 
 const PORT = process.env.PORT || 5000;
