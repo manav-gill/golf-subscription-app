@@ -7,6 +7,7 @@ const morgan = require('morgan');
 
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
+const scoreRoutes = require('./routes/scoreRoutes');
 const authMiddleware = require('./middleware/authMiddleware');
 
 const app = express();
@@ -22,6 +23,7 @@ app.get('/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/scores', scoreRoutes);
 
 app.get('/api/protected/me', authMiddleware, (req, res) => {
   res.json({

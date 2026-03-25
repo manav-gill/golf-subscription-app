@@ -52,6 +52,22 @@ Subscription activation is dummy and has no Stripe integration.
 - Maximum 5 scores per user.
 - Scores are ordered latest first.
 
+## Score Management System
+- POST /api/scores adds a new score for the authenticated user.
+- GET /api/scores returns the authenticated user's latest scores.
+- The system enforces rolling storage of at most 5 scores per user.
+
+## Rolling 5-Score Logic
+- When a new score is added, it is inserted first.
+- Scores are sorted by date (latest first), then by created_at (latest first).
+- If total scores become greater than 5, the oldest score(s) are deleted.
+- Returned score lists are always limited to latest 5.
+
+## Score Subscription Requirement
+- Only users with active subscriptions can add scores.
+- Active means is_subscribed is true and current time is before subscription_end.
+- If subscription is missing or expired, score entry is rejected.
+
 ## Draw Rules
 - Each draw generates 5 random numbers from 1 to 45.
 - Match types: 3, 4, and 5.
@@ -81,6 +97,8 @@ Subscription activation is dummy and has no Stripe integration.
 - GET /api/users/me
 - PUT /api/users/me
 - POST /api/users/subscribe
+- POST /api/scores
+- GET /api/scores
 
 ## Ongoing Maintenance Requirement
 As we build more parts, this file must be updated each time.
