@@ -138,6 +138,26 @@ Subscription activation is dummy and has no Stripe integration.
 - Only users with role = admin can verify winners and distribute prizes.
 - Users can only access their own winnings via /api/winners/me.
 
+## Charity System
+- Public users can browse all charities and view charity details.
+- Authenticated users can select a single charity and set their contribution percentage.
+- Admin users manage charity listings through create, update, and delete endpoints.
+
+## Charity Selection Logic
+- Users select charities using POST /api/charities/select.
+- Selection stores charity_id and contribution_percentage on the user profile.
+- Users may update their charity selection later by calling the same endpoint.
+
+## Contribution Percentage Rules
+- contribution_percentage must be a number.
+- Minimum contribution_percentage is 10.
+- charityId must exist before selection is saved.
+
+## Charity Tables Schema
+- Charities table: id, name, description, image_url, created_at.
+- Users table extensions: charity_id, contribution_percentage.
+- SQL setup file: server/config/charityTables.sql.
+
 ## Auth Flow
 - Signup validates input, hashes password, stores user, and returns JWT.
 - Login validates credentials and returns JWT.
@@ -171,6 +191,12 @@ Subscription activation is dummy and has no Stripe integration.
 - GET /api/winners/me
 - PATCH /api/winners/:id/verify
 - POST /api/winners/distribute/:drawId
+- GET /api/charities
+- GET /api/charities/:id
+- POST /api/charities
+- PUT /api/charities/:id
+- DELETE /api/charities/:id
+- POST /api/charities/select
 
 ## Ongoing Maintenance Requirement
 As we build more parts, this file must be updated each time.
