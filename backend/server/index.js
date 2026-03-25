@@ -8,6 +8,8 @@ const morgan = require('morgan');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const scoreRoutes = require('./routes/scoreRoutes');
+const drawRoutes = require('./routes/drawRoutes');
+const winnerRoutes = require('./routes/winnerRoutes');
 const authMiddleware = require('./middleware/authMiddleware');
 
 const app = express();
@@ -24,6 +26,8 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/scores', scoreRoutes);
+app.use('/api/draw', drawRoutes);
+app.use('/api/winners', winnerRoutes);
 
 app.get('/api/protected/me', authMiddleware, (req, res) => {
   res.json({

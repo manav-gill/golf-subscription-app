@@ -57,6 +57,16 @@ Subscription activation is dummy and has no Stripe integration.
 - GET /api/scores returns the authenticated user's latest scores.
 - The system enforces rolling storage of at most 5 scores per user.
 
+## Scores Table Schema
+- Database table: scores
+- Fields:
+	- id (primary key)
+	- user_id (foreign key -> users.id)
+	- score (integer, 1-45)
+	- date (date of play)
+	- created_at (timestamp)
+- SQL setup file: server/config/scoresTable.sql
+
 ## Rolling 5-Score Logic
 - When a new score is added, it is inserted first.
 - Scores are sorted by date (latest first), then by created_at (latest first).
@@ -71,6 +81,62 @@ Subscription activation is dummy and has no Stripe integration.
 ## Draw Rules
 - Each draw generates 5 random numbers from 1 to 45.
 - Match types: 3, 4, and 5.
+
+## Draw System
+- Monthly draw execution is available through admin-only endpoint POST /api/draw/run.
+- Each draw stores exactly 5 random unique numbers between 1 and 45.
+- Only one draw is allowed per month and year.
+
+## Draw Number Generation Logic
+- The system generates random integers in the inclusive range 1 to 45.
+- Numbers are unique within a draw.
+- A completed draw always stores exactly 5 values.
+
+## Winner Evaluation Logic
+- Winner evaluation compares draw numbers with each eligible user's 5 scores.
+- Eligible users must be subscribed and have exactly 5 stored scores.
+- Match count is calculated by intersection of draw numbers and user score values.
+- Winners are stored when match_count is 3, 4, or 5.
+
+## Draw Eligibility And Admin Rules
+- Only users with role = admin can run a draw.
+- Only subscribed users are eligible in evaluation.
+- Subscription must be active (is_subscribed true and subscription_end in the future).
+
+## Winner Tiers
+- Tier 3: 3 matches
+- Tier 4: 4 matches
+- Tier 5: 5 matches
+
+## Draw Tables Schema
+- Draws table: id, numbers, month, year, created_at.
+- Winners table: id, user_id, draw_id, match_count, prize_amount, status, created_at.
+- SQL setup file: server/config/drawTables.sql.
+
+## Winner Management System
+- Winners are created during draw evaluation when match_count is 3, 4, or 5.
+- Admin can review winners by draw and verify status transitions.
+- Users can only view their own winnings through personal endpoint.
+
+## Winner Status Lifecycle
+- pending: initial state after draw winner evaluation.
+- approved: admin-verified winner.
+- paid: payout completed.
+- Allowed transition path is strictly pending -> approved -> paid.
+
+## Prize Distribution Logic
+- Prize pool is calculated as active_subscribers * 100.
+- Tier allocation:
+	- 5 matches: 40%
+	- 4 matches: 35%
+	- 3 matches: 25%
+- Tier amount is split equally among winners of that tier.
+- Empty tiers are skipped for MVP.
+- Duplicate distribution runs are blocked once prize_amount is set for the draw.
+
+## Winner Access And Admin Rules
+- Only users with role = admin can verify winners and distribute prizes.
+- Users can only access their own winnings via /api/winners/me.
 
 ## Auth Flow
 - Signup validates input, hashes password, stores user, and returns JWT.
@@ -99,6 +165,12 @@ Subscription activation is dummy and has no Stripe integration.
 - POST /api/users/subscribe
 - POST /api/scores
 - GET /api/scores
+- POST /api/draw/run
+- GET /api/draw/current
+- GET /api/winners/draw/:drawId
+- GET /api/winners/me
+- PATCH /api/winners/:id/verify
+- POST /api/winners/distribute/:drawId
 
 ## Ongoing Maintenance Requirement
 As we build more parts, this file must be updated each time.
