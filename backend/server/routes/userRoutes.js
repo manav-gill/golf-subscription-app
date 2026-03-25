@@ -2,6 +2,7 @@ const express = require('express');
 const { body } = require('express-validator');
 
 const authMiddleware = require('../middleware/authMiddleware');
+const validationMiddleware = require('../middleware/validationMiddleware');
 const userController = require('../controllers/userController');
 
 const router = express.Router();
@@ -26,6 +27,7 @@ router.put(
       return true;
     })
   ],
+  validationMiddleware,
   userController.updateMe
 );
 

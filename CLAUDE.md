@@ -164,6 +164,32 @@ Subscription activation is dummy and has no Stripe integration.
 - JWT payload contains { userId, role }.
 - Protected routes require authMiddleware and Bearer token.
 
+## Middleware Architecture
+- authMiddleware: Verifies Bearer JWT token and attaches decoded user context to req.user.
+- roleMiddleware: Exposes requireRole(role) for role-based route guards (admin or user).
+- subscriptionMiddleware: Validates active subscription (is_subscribed true and subscription_end in future).
+- validationMiddleware: Central handler for express-validator errors with consistent response format.
+- errorMiddleware: Global catch-all error responder registered as the last middleware.
+
+## Role-Based Access Control
+- requireRole('admin') is used for management routes (draw execution, winner management, charity CRUD).
+- User routes remain authenticated and scoped to req.user for personal data access.
+- Unauthorized roles receive 403 Forbidden responses.
+
+## Subscription Validation Logic
+- subscriptionMiddleware fetches latest user subscription fields from database.
+- Access is allowed only when is_subscribed is true and current time is before subscription_end.
+- Used on score entry routes and reusable for future protected features.
+
+## Error Handling Structure
+- validationMiddleware handles request input errors and returns 400 responses.
+- Service/controller errors include status and message where available.
+- errorMiddleware returns structured JSON:
+	{
+		success: false,
+		message: error message
+	}
+
 ## User Profile Flow
 - GET /api/users/me returns the authenticated user's profile.
 - PUT /api/users/me updates allowed profile fields for authenticated user.

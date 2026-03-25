@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 
 function authMiddleware(req, res, next) {
-  const authHeader = req.headers.authorization;
+  const authHeader = req.headers.authorization || '';
 
   if (!authHeader) {
     return res.status(401).json({
@@ -10,7 +10,7 @@ function authMiddleware(req, res, next) {
     });
   }
 
-  const [scheme, token] = authHeader.split(' ');
+  const [scheme, token] = authHeader.trim().split(' ');
   if (scheme !== 'Bearer' || !token) {
     return res.status(401).json({
       success: false,
@@ -27,9 +27,19 @@ function authMiddleware(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    if (!decoded || !decoded.userId || !decoded.role) {
+      return res.status(401).json({
+        success: false,
+        message: 'Token payload is invalid'
+      });
+    }
+
     req.user = {
       userId: decoded.userId,
-      role: decoded.role
+      role: decoded.role,
+      iat: decoded.iat,
+      exp: decoded.exp
     };
 
     return next();

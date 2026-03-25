@@ -12,6 +12,7 @@ const drawRoutes = require('./routes/drawRoutes');
 const winnerRoutes = require('./routes/winnerRoutes');
 const charityRoutes = require('./routes/charityRoutes');
 const authMiddleware = require('./middleware/authMiddleware');
+const errorMiddleware = require('./middleware/errorMiddleware');
 
 const app = express();
 
@@ -46,6 +47,8 @@ app.use('/api', (req, res) => {
     message: 'API route not found'
   });
 });
+
+app.use(errorMiddleware);
 
 const PORT = process.env.PORT || 5000;
 
