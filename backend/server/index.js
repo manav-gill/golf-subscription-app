@@ -11,15 +11,14 @@ const scoreRoutes = require('./routes/scoreRoutes');
 const drawRoutes = require('./routes/drawRoutes');
 const winnerRoutes = require('./routes/winnerRoutes');
 const charityRoutes = require('./routes/charityRoutes');
-const authMiddleware = require('./middleware/authMiddleware');
 const errorMiddleware = require('./middleware/errorMiddleware');
 
 const app = express();
 
+app.use(express.json());
 app.use(cors());
 app.use(helmet());
-app.use(morgan('combined'));
-app.use(express.json());
+app.use(morgan('dev'));
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
@@ -30,21 +29,12 @@ app.use('/api/users', userRoutes);
 app.use('/api/scores', scoreRoutes);
 app.use('/api/draw', drawRoutes);
 app.use('/api/winners', winnerRoutes);
-app.use('/api', charityRoutes);
+app.use('/api/charities', charityRoutes);
 
-app.get('/api/protected/me', authMiddleware, (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      user: req.user
-    }
-  });
-});
-
-app.use('/api', (req, res) => {
+app.use((req, res) => {
   res.status(404).json({
     success: false,
-    message: 'API route not found'
+    message: 'Route not found'
   });
 });
 

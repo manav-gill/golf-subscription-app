@@ -224,5 +224,80 @@ Subscription activation is dummy and has no Stripe integration.
 - DELETE /api/charities/:id
 - POST /api/charities/select
 
+## Final System Architecture
+- Entry point: server/index.js initializes environment, middleware, routes, 404 handling, and global error handling.
+- Modular API layers: routes handle transport, controllers handle request/response, services handle business and database logic.
+- Shared middleware enforces authentication, role checks, subscription access, request validation, and error formatting.
+- Database integration is centralized through server/config/supabase.js.
+
+## Complete API Routes Summary
+- Auth:
+	- POST /api/auth/signup
+	- POST /api/auth/login
+- Users:
+	- GET /api/users/me
+	- PUT /api/users/me
+	- POST /api/users/subscribe
+- Scores:
+	- POST /api/scores
+	- GET /api/scores
+- Draw:
+	- POST /api/draw/run
+	- GET /api/draw/current
+- Winners:
+	- GET /api/winners/me
+	- GET /api/winners/draw/:drawId
+	- PATCH /api/winners/:id/verify
+	- POST /api/winners/distribute/:drawId
+- Charities:
+	- GET /api/charities
+	- GET /api/charities/:id
+	- POST /api/charities/select
+	- POST /api/charities
+	- PUT /api/charities/:id
+	- DELETE /api/charities/:id
+- Health:
+	- GET /health
+
+## Middleware Flow (Runtime Order)
+1. express.json()
+2. cors()
+3. helmet()
+4. morgan('dev')
+5. Route handlers
+6. 404 handler (Route not found)
+7. errorMiddleware (global catch-all)
+
+## Backend Testing Checklist
+- Verify server boot with .env values and default PORT fallback (5000).
+- Verify GET /health returns { status: "ok" }.
+- Verify unknown route returns 404 with { success: false, message: "Route not found" }.
+- Verify auth flow:
+	- POST /api/auth/signup
+	- POST /api/auth/login
+- Verify user flow:
+	- GET /api/users/me
+	- PUT /api/users/me
+	- POST /api/users/subscribe
+- Verify score flow:
+	- POST /api/scores
+	- GET /api/scores
+- Verify draw flow:
+	- POST /api/draw/run (admin)
+	- GET /api/draw/current
+- Verify winner flow:
+	- GET /api/winners/me
+	- GET /api/winners/draw/:drawId
+	- PATCH /api/winners/:id/verify
+	- POST /api/winners/distribute/:drawId
+- Verify charity flow:
+	- GET /api/charities
+	- GET /api/charities/:id
+	- POST /api/charities/select
+	- POST /api/charities (admin)
+- Verify role and auth protection on admin-only routes.
+- Verify validation middleware returns consistent 400 response payload.
+- Verify errorMiddleware formats unexpected errors consistently.
+
 ## Ongoing Maintenance Requirement
 As we build more parts, this file must be updated each time.

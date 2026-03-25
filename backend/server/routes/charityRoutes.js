@@ -8,17 +8,17 @@ const charityController = require('../controllers/charityController');
 
 const router = express.Router();
 
-router.get('/charities', charityController.getAllCharities);
+router.get('/', charityController.getAllCharities);
 
 router.get(
-  '/charities/:id',
+  '/:id',
   [param('id').isUUID().withMessage('id must be a valid UUID')],
   validationMiddleware,
   charityController.getCharityById
 );
 
 router.post(
-  '/charities/select',
+  '/select',
   authMiddleware,
   [
     body('charityId').isUUID().withMessage('charityId must be a valid UUID'),
@@ -31,7 +31,7 @@ router.post(
 );
 
 router.post(
-  '/charities',
+  '/',
   authMiddleware,
   requireRole('admin'),
   [
@@ -44,7 +44,7 @@ router.post(
 );
 
 router.put(
-  '/charities/:id',
+  '/:id',
   authMiddleware,
   requireRole('admin'),
   [
@@ -58,7 +58,7 @@ router.put(
 );
 
 router.delete(
-  '/charities/:id',
+  '/:id',
   authMiddleware,
   requireRole('admin'),
   [param('id').isUUID().withMessage('id must be a valid UUID')],
