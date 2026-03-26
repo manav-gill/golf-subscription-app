@@ -23,7 +23,7 @@ function requireJwtSecret() {
 
 function generateToken(userId, role) {
   const secret = requireJwtSecret();
-  return jwt.sign({ userId, role }, secret, { expiresIn: JWT_EXPIRES_IN });
+  return jwt.sign({ id: userId, role }, secret, { expiresIn: JWT_EXPIRES_IN });
 }
 
 async function registerUser(name, email, password) {

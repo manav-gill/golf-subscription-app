@@ -27,8 +27,11 @@ function authMiddleware(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('Decoded user:', decoded);
 
-    if (!decoded || !decoded.userId || !decoded.role) {
+    const resolvedUserId = decoded?.id || decoded?.userId;
+
+    if (!decoded || !resolvedUserId || !decoded.role) {
       return res.status(401).json({
         success: false,
         message: 'Token payload is invalid'
@@ -36,7 +39,8 @@ function authMiddleware(req, res, next) {
     }
 
     req.user = {
-      userId: decoded.userId,
+      id: resolvedUserId,
+      userId: resolvedUserId,
       role: decoded.role,
       iat: decoded.iat,
       exp: decoded.exp

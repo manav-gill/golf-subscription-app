@@ -3,13 +3,32 @@ const { validationResult } = require('express-validator');
 const userService = require('../services/userService');
 
 async function getMe(req, res) {
+  console.log('REQ.USER:', req.user);
+
   try {
-    const user = await userService.getUserById(req.user.userId);
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Unauthorized: user id missing in token payload'
+      });
+    }
+
+    const user = await userService.getUserById(userId);
+
+    const profile = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role
+    };
 
     return res.status(200).json({
       success: true,
       message: 'User profile fetched successfully',
-      data: user
+      user: profile,
+      data: profile
     });
   } catch (error) {
     return res.status(error.status || 500).json({
@@ -30,7 +49,7 @@ async function updateMe(req, res) {
   }
 
   try {
-    const updatedUser = await userService.updateUser(req.user.userId, req.body);
+    const updatedUser = await userService.updateUser(req.user.id || req.user.userId, req.body);
 
     return res.status(200).json({
       success: true,
@@ -47,7 +66,7 @@ async function updateMe(req, res) {
 
 async function subscribe(req, res) {
   try {
-    const updatedUser = await userService.activateSubscription(req.user.userId);
+    const updatedUser = await userService.activateSubscription(req.user.id || req.user.userId);
 
     return res.status(200).json({
       success: true,

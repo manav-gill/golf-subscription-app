@@ -18,12 +18,15 @@ async function getUserById(userId) {
 
   const { data: user, error } = await supabase
     .from('users')
-    .select('id, email, role, is_subscribed, subscription_start, subscription_end, created_at')
+    .select('*')
     .eq('id', userId)
-    .maybeSingle();
+    .single();
+
+  console.log('DB DATA:', user);
+  console.log('DB ERROR:', error);
 
   if (error) {
-    throw new UserServiceError('Failed to fetch user profile', 500);
+    throw new UserServiceError(error.message, 500);
   }
 
   if (!user) {

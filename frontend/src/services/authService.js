@@ -52,6 +52,7 @@ export async function signup(data) {
 export async function getProfile() {
   const url = '/users/me';
 
+  console.log('Calling /users/me');
   console.log('PROFILE REQUEST:', {
     url,
     baseURL: import.meta.env.VITE_API_BASE_URL
