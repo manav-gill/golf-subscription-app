@@ -153,6 +153,7 @@ cp .env.example .env
 ```
 3. Add required values in `.env`.
 4. Run SQL setup files in Supabase SQL Editor:
+- `server/config/usersTable.sql`
 - `server/config/scoresTable.sql`
 - `server/config/drawTables.sql`
 - `server/config/charityTables.sql`
