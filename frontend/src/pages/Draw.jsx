@@ -1,47 +1,84 @@
+import { useEffect, useMemo, useState } from 'react';
+
 import DashboardLayout from '../components/layout/DashboardLayout';
-import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
-
-function getResultStatus(matchCount) {
-  if (matchCount === 5) {
-    return 'Jackpot';
-  }
-
-  if (matchCount === 4) {
-    return 'Medium Win';
-  }
-
-  if (matchCount === 3) {
-    return 'Small Win';
-  }
-
-  return 'No Win';
-}
-
-function getRewardAmount(matchCount) {
-  if (matchCount === 5) {
-    return '₹10,000';
-  }
-
-  if (matchCount === 4) {
-    return '₹2,000';
-  }
-
-  if (matchCount === 3) {
-    return '₹500';
-  }
-
-  return '₹0';
-}
+import { getLatestDraw, getUserResult } from '../services/drawService';
 
 function Draw() {
-  const drawNumbers = [12, 25, 33, 41, 7];
-  const userScores = [12, 30, 33, 8, 41];
+  const [drawNumbers, setDrawNumbers] = useState([]);
+  const [result, setResult] = useState({ matches: 0, reward: 0, status: 'No Win' });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const matchedNumbers = drawNumbers.filter(number => userScores.includes(number));
-  const matchCount = matchedNumbers.length;
-  const resultStatus = getResultStatus(matchCount);
-  const rewardAmount = getRewardAmount(matchCount);
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchDrawData() {
+      setLoading(true);
+      setError('');
+
+      try {
+        const [drawResponse, resultResponse] = await Promise.all([getLatestDraw(), getUserResult()]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        const latestDraw = drawResponse?.data?.data || null;
+        const nextNumbers = Array.isArray(latestDraw?.numbers) ? latestDraw.numbers : [];
+        const nextResult = resultResponse?.data?.data || { matches: 0, reward: 0, status: 'No Win' };
+
+        setDrawNumbers(nextNumbers);
+        setResult(nextResult);
+      } catch (err) {
+        if (!isMounted) {
+          return;
+        }
+
+        setError(err?.response?.data?.message || 'Failed to load draw result.');
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchDrawData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const formattedReward = useMemo(() => {
+    const rewardValue = Number(result?.reward || 0);
+
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(rewardValue);
+  }, [result?.reward]);
+
+  if (loading) {
+    return (
+      <DashboardLayout title="Draw Results">
+        <Card className="rounded-2xl shadow-soft">
+          <p className="text-secondary">Loading...</p>
+        </Card>
+      </DashboardLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <DashboardLayout title="Draw Results">
+        <Card className="rounded-2xl shadow-soft">
+          <p className="text-red-600">{error}</p>
+        </Card>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout title="Draw Results">
@@ -55,25 +92,15 @@ function Draw() {
           <h2 className="text-xl font-semibold text-primary">Latest Draw</h2>
 
           <div className="mt-5 flex flex-wrap items-center justify-center gap-4">
-            {drawNumbers.map(number => {
-              const isMatched = matchedNumbers.includes(number);
-
-              return (
-                <div
-                  key={number}
-                  className={`flex h-12 w-12 items-center justify-center rounded-2xl border text-base font-semibold ${
-                    isMatched
-                      ? 'border-accent bg-accent text-white'
-                      : 'border-border bg-background text-primary'
-                  }`}
-                >
-                  {number}
-                </div>
-              );
-            })}
+            {drawNumbers.map(number => (
+              <div
+                key={number}
+                className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border bg-background text-base font-semibold text-primary"
+              >
+                {number}
+              </div>
+            ))}
           </div>
-
-          <p className="mt-5 text-center text-sm text-secondary">Your scores: {userScores.join(', ')}</p>
         </Card>
 
         <Card className="rounded-2xl shadow-soft hover:shadow-sm">
@@ -81,21 +108,10 @@ function Draw() {
 
           <div className="mt-4 rounded-2xl border border-border bg-background p-4">
             <p className="text-sm text-secondary">Matches</p>
-            <p className="mt-1 text-2xl font-semibold text-primary">{matchCount} Matches</p>
+            <p className="mt-1 text-2xl font-semibold text-primary">{result.matches} Matches</p>
 
             <p className="mt-4 text-sm text-secondary">Status</p>
-            <p className="mt-1 text-lg font-semibold text-primary">{resultStatus}</p>
-          </div>
-
-          <div className="mt-4">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={() => console.log('Draw result preview', { drawNumbers, userScores, matchedNumbers })}
-            >
-              View Match Details
-            </Button>
+            <p className="mt-1 text-lg font-semibold text-primary">{result.status}</p>
           </div>
         </Card>
       </div>
@@ -106,7 +122,7 @@ function Draw() {
         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="rounded-2xl border border-border bg-background p-4">
             <p className="text-sm text-secondary">Current Reward</p>
-            <p className="mt-1 text-2xl font-semibold text-primary">{rewardAmount}</p>
+            <p className="mt-1 text-2xl font-semibold text-primary">{formattedReward}</p>
           </div>
 
           <div className="rounded-2xl border border-border bg-background p-4">

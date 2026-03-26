@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import DashboardLayout from '../components/layout/DashboardLayout';
 import Button from '../components/ui/Button';
@@ -67,11 +67,6 @@ function Charity() {
   const isContributionValid = Number.isFinite(contributionValue) && contributionValue >= 10 && contributionValue <= 100;
 
   const isSaveEnabled = Boolean(selectedCharity) && isContributionValid && !saving;
-
-  const selectedCharityDetails = useMemo(
-    () => charities.find(charity => charity.id === selectedCharity) || null,
-    [selectedCharity]
-  );
 
   const handleSavePreference = async () => {
     if (!selectedCharity) {
