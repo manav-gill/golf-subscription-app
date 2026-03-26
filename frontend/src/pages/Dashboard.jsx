@@ -1,23 +1,18 @@
-import Button from '../components/ui/Button';
+import DashboardLayout from '../components/layout/DashboardLayout';
 import Card from '../components/ui/Card';
-import useAuth from '../hooks/useAuth';
 
 function Dashboard() {
-  const { logout } = useAuth();
-
   return (
-    <main className="min-h-screen bg-background px-6 py-10 text-primary sm:flex sm:items-center sm:justify-center">
-      <Card className="mx-auto w-full max-w-2xl p-8 shadow-soft">
-        <h1 className="text-3xl font-semibold leading-tight">Dashboard</h1>
-        <p className="mt-2 text-secondary">Welcome to your dashboard.</p>
+    <DashboardLayout title="Dashboard">
+      <Card className="max-w-2xl shadow-soft">
+        <h2 className="text-2xl font-semibold text-primary">Dashboard</h2>
+        <p className="mt-2 text-secondary">Your monthly progress and charity impact will appear here.</p>
 
-        <div className="mt-6">
-          <Button variant="outline" onClick={logout}>
-            Logout
-          </Button>
+        <div className="mt-5 rounded-xl bg-background p-4">
+          <p className="text-sm text-secondary">This is a sample dashboard card. More widgets can be added here.</p>
         </div>
       </Card>
-    </main>
+    </DashboardLayout>
   );
 }
 
