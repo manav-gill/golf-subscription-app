@@ -48,3 +48,22 @@ export async function signup(data) {
     throw error;
   }
 }
+
+export async function getProfile() {
+  const url = '/users/me';
+
+  console.log('PROFILE REQUEST:', {
+    url,
+    baseURL: import.meta.env.VITE_API_BASE_URL
+  });
+
+  try {
+    const response = await api.get(url);
+    console.log('PROFILE RESPONSE:', response?.data);
+    return response;
+  } catch (error) {
+    console.error('PROFILE ERROR RESPONSE:', error?.response);
+    console.error('PROFILE ERROR MESSAGE:', error?.message);
+    throw error;
+  }
+}

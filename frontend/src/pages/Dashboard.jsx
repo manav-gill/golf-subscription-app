@@ -1,13 +1,68 @@
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
 import DashboardLayout from '../components/layout/DashboardLayout';
 import Card from '../components/ui/Card';
+import { getProfile } from '../services/authService';
 
 function Dashboard() {
-  const stats = [
-    { title: 'Subscription', value: 'Active' },
-    { title: 'Total Winnings', value: '₹12,500' },
-    { title: 'Donations', value: '₹3,200' },
-    { title: 'Active Scores', value: '5' }
-  ];
+  const navigate = useNavigate();
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchProfile() {
+      setLoading(true);
+      setError('');
+
+      try {
+        const response = await getProfile();
+
+        if (!isMounted) {
+          return;
+        }
+
+        setProfile(response?.data?.data || null);
+      } catch (err) {
+        if (!isMounted) {
+          return;
+        }
+
+        if (err?.response?.status === 401) {
+          localStorage.removeItem('token');
+          navigate('/login', { replace: true });
+          return;
+        }
+
+        setError(err?.response?.data?.message || 'Failed to load dashboard data.');
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [navigate]);
+
+  const stats = useMemo(() => {
+    const subscriptionValue = profile?.is_subscribed ? 'Active' : 'Inactive';
+
+    // TODO: Replace with backend-provided financial summary fields once available.
+    return [
+      { title: 'Subscription', value: subscriptionValue },
+      { title: 'Total Winnings', value: 'Pending API' },
+      { title: 'Donations', value: 'Pending API' },
+      { title: 'Active Scores', value: 'Pending API' }
+    ];
+  }, [profile]);
 
   const recentScores = [32, 41, 28, 35, 39];
 
@@ -15,6 +70,26 @@ function Dashboard() {
     name: 'Helping Hands Foundation',
     contribution: '15%'
   };
+
+  if (loading) {
+    return (
+      <DashboardLayout title="Dashboard">
+        <Card className="rounded-2xl shadow-soft">
+          <p className="text-secondary">Loading...</p>
+        </Card>
+      </DashboardLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <DashboardLayout title="Dashboard">
+        <Card className="rounded-2xl shadow-soft">
+          <p className="text-red-600">{error}</p>
+        </Card>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout title="Dashboard">
