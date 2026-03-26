@@ -30,6 +30,7 @@ Use camelCase for file names and function names.
 - SUPABASE_SERVICE_KEY: Service role key for secure backend DB operations.
 - JWT_SECRET: Secret for signing and verifying JWT tokens.
 - JWT_EXPIRES_IN: JWT expiration time, for example 7d.
+- ADMIN_PASSWORD: Optional startup admin seed password. Used for local/testing defaults only.
 
 ## API Base URL
 /api
@@ -43,6 +44,28 @@ Authorization: Bearer <jwt_token>
 ## Role Types
 - user
 - admin
+
+## Role System Explanation
+- user role is for standard members who can access personal features like profile, subscription, scores, draw visibility, winnings visibility, and charity selection.
+- admin role is for platform management and can run draws, verify winners, distribute prizes, and perform charity CRUD.
+- Role-based access is enforced with requireRole('admin') middleware on admin-only routes.
+
+## Admin Seeding System
+- Startup seeding runs via server/services/adminSeeder.js when the backend boots.
+- seedAdmin() checks the users table for any existing role = admin record.
+- If an admin exists, seeding is skipped to keep the process idempotent.
+- If no admin exists, a default admin record is inserted with:
+	- email: admin@gmail.com
+	- password: bcrypt-hashed ADMIN_PASSWORD value or local fallback
+	- role: admin
+	- is_subscribed: true
+- Seeding errors are logged safely and do not expose raw credentials.
+
+## Default Admin Credentials (Testing Only)
+- Email: admin@gmail.com
+- Password source: ADMIN_PASSWORD environment variable.
+- Local fallback if ADMIN_PASSWORD is not set: admin123.
+- IMPORTANT: For production, set a strong ADMIN_PASSWORD and rotate the admin password immediately after first login.
 
 ## Subscription Logic
 Subscription activation is dummy and has no Stripe integration.
@@ -225,7 +248,7 @@ Subscription activation is dummy and has no Stripe integration.
 - POST /api/charities/select
 
 ## Final System Architecture
-- Entry point: server/index.js initializes environment, middleware, routes, 404 handling, and global error handling.
+- Entry point: index.js delegates to server/index.js, which initializes environment, middleware, routes, 404 handling, and global error handling.
 - Modular API layers: routes handle transport, controllers handle request/response, services handle business and database logic.
 - Shared middleware enforces authentication, role checks, subscription access, request validation, and error formatting.
 - Database integration is centralized through server/config/supabase.js.
@@ -298,6 +321,34 @@ Subscription activation is dummy and has no Stripe integration.
 - Verify role and auth protection on admin-only routes.
 - Verify validation middleware returns consistent 400 response payload.
 - Verify errorMiddleware formats unexpected errors consistently.
+
+## Deployment Readiness Checklist
+- Use backend/index.js as runtime entry and run the app with npm start (node index.js).
+- Ensure backend/.env contains: PORT, SUPABASE_URL, SUPABASE_SERVICE_KEY, JWT_SECRET, JWT_EXPIRES_IN.
+- Do not commit secrets; keep .env local and use environment variables in hosting platform settings.
+- Confirm backend/.gitignore includes node_modules and .env.
+- Validate startup logs and /health endpoint before enabling public traffic.
+
+## Render Deployment Flow
+1. Create a new Web Service and connect the repository.
+2. Set Root Directory to backend.
+3. Set Build Command: npm install.
+4. Set Start Command: npm start.
+5. Add environment variables from backend/.env.example values.
+6. Deploy and verify GET /health after build completes.
+
+## Vercel Deployment Note
+- Default Vercel behavior is optimized for serverless functions, while this backend is an Express server process.
+- Preferred production hosting is Render for this architecture.
+- If Vercel must be used, adapt API routes to serverless-compatible handlers before production use.
+
+## API Testing Flow
+1. Import backend/Golf-Charity-Subscription-Platform.postman_collection.json.
+2. Set collection variables: baseUrl and authToken.
+3. Run Auth requests first to obtain a JWT.
+4. Use the JWT for protected endpoints (users, scores, draw, winners, charities select/admin).
+5. Execute admin-only flows with an admin account token.
+6. Record response payloads for regression tracking across releases.
 
 ## Ongoing Maintenance Requirement
 As we build more parts, this file must be updated each time.

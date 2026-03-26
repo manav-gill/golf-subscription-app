@@ -11,6 +11,7 @@ const scoreRoutes = require('./routes/scoreRoutes');
 const drawRoutes = require('./routes/drawRoutes');
 const winnerRoutes = require('./routes/winnerRoutes');
 const charityRoutes = require('./routes/charityRoutes');
+const { seedAdmin } = require('./services/adminSeeder');
 const errorMiddleware = require('./middleware/errorMiddleware');
 
 const app = express();
@@ -42,6 +43,17 @@ app.use(errorMiddleware);
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+async function bootstrap() {
+  try {
+    const seedResult = await seedAdmin();
+    console.log(`[admin-seeder] ${seedResult.message}`);
+  } catch (error) {
+    console.error(`[admin-seeder] ${error.message}`);
+  }
+
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}
+
+bootstrap();
