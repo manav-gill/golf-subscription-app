@@ -1,0 +1,28 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color: #1F2937;
+    background-color: #F6F3EE;
+    font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  * {
+    @apply transition-colors duration-300;
+  }
+
+  body {
+    @apply m-0 min-h-screen bg-background text-primary;
+  }
+
+  #root {
+    @apply min-h-screen;
+  }
+}
