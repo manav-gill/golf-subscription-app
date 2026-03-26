@@ -1,50 +1,79 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import DashboardLayout from '../components/layout/DashboardLayout';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
-
-const charities = [
-  {
-    id: 'helping-hands-foundation',
-    name: 'Helping Hands Foundation',
-    description: 'Supports families with food security and essential care.'
-  },
-  {
-    id: 'green-earth-initiative',
-    name: 'Green Earth Initiative',
-    description: 'Drives tree plantation and climate-focused local projects.'
-  },
-  {
-    id: 'education-for-all',
-    name: 'Education For All',
-    description: 'Provides learning resources and scholarships for students.'
-  },
-  {
-    id: 'health-support-trust',
-    name: 'Health Support Trust',
-    description: 'Funds medical camps and preventive healthcare awareness.'
-  }
-];
+import { getCharities, getUserCharity, saveUserCharity } from '../services/charityService';
 
 function Charity() {
+  const [charities, setCharities] = useState([]);
   const [selectedCharity, setSelectedCharity] = useState('');
   const [contribution, setContribution] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadCharityData() {
+      setLoading(true);
+      setError('');
+      setSuccessMessage('');
+
+      try {
+        const [charitiesResponse, userCharityResponse] = await Promise.all([
+          getCharities(),
+          getUserCharity()
+        ]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        const charityList = charitiesResponse?.data?.data || [];
+        const savedPreference = userCharityResponse?.data?.data || null;
+
+        setCharities(charityList);
+        setSelectedCharity(savedPreference?.charityId || '');
+
+        if (savedPreference?.contributionPercentage !== null && savedPreference?.contributionPercentage !== undefined) {
+          setContribution(String(savedPreference.contributionPercentage));
+        }
+      } catch (err) {
+        if (!isMounted) {
+          return;
+        }
+
+        setError(err?.response?.data?.message || 'Failed to load charity data.');
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadCharityData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const contributionValue = Number(contribution);
 
   const isContributionValid = Number.isFinite(contributionValue) && contributionValue >= 10 && contributionValue <= 100;
 
-  const isSaveEnabled = Boolean(selectedCharity) && isContributionValid;
+  const isSaveEnabled = Boolean(selectedCharity) && isContributionValid && !saving;
 
   const selectedCharityDetails = useMemo(
     () => charities.find(charity => charity.id === selectedCharity) || null,
     [selectedCharity]
   );
 
-  const handleSavePreference = () => {
+  const handleSavePreference = async () => {
     if (!selectedCharity) {
       setError('Please select a charity.');
       return;
@@ -55,16 +84,34 @@ function Charity() {
       return;
     }
 
+    setSaving(true);
     setError('');
+    setSuccessMessage('');
 
-    const payload = {
-      charityId: selectedCharity,
-      charityName: selectedCharityDetails?.name,
-      contributionPercentage: contributionValue
-    };
+    try {
+      await saveUserCharity({
+        charityId: selectedCharity,
+        percentage: contributionValue
+      });
 
-    console.log('Saved charity preference:', payload);
-    alert('Preference saved successfully.');
+      setSuccessMessage('Preference saved successfully.');
+
+      // Refetch to keep backend as source of truth.
+      const refreshedPreference = await getUserCharity();
+      const savedData = refreshedPreference?.data?.data || null;
+
+      if (savedData?.charityId) {
+        setSelectedCharity(savedData.charityId);
+      }
+
+      if (savedData?.contributionPercentage !== null && savedData?.contributionPercentage !== undefined) {
+        setContribution(String(savedData.contributionPercentage));
+      }
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to save charity preference.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -76,6 +123,10 @@ function Charity() {
 
       <section className="mb-6">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          {loading ? <p className="text-secondary">Loading...</p> : null}
+
+          {!loading && charities.length === 0 ? <p className="text-secondary">No charities available.</p> : null}
+
           {charities.map(charity => {
             const isSelected = selectedCharity === charity.id;
 
@@ -87,7 +138,7 @@ function Charity() {
                 }`}
               >
                 <h2 className="text-lg font-semibold text-primary">{charity.name}</h2>
-                <p className="mt-2 text-sm text-secondary">{charity.description}</p>
+                <p className="mt-2 text-sm text-secondary">{charity.description || 'No description available.'}</p>
 
                 <div className="mt-4">
                   <Button
@@ -96,6 +147,7 @@ function Charity() {
                     onClick={() => {
                       setSelectedCharity(charity.id);
                       setError('');
+                      setSuccessMessage('');
                     }}
                   >
                     {isSelected ? 'Selected' : 'Select'}
@@ -126,11 +178,13 @@ function Charity() {
               onChange={event => {
                 setContribution(event.target.value);
                 setError('');
+                setSuccessMessage('');
               }}
               placeholder="Enter contribution (10-100)"
             />
 
             {error ? <p className="text-sm text-red-600">{error}</p> : null}
+            {successMessage ? <p className="text-sm text-green-700">{successMessage}</p> : null}
 
             <Button
               type="button"
@@ -139,7 +193,7 @@ function Charity() {
               disabled={!isSaveEnabled}
               className="w-full disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Save Preference
+              {saving ? 'Saving...' : 'Save Preference'}
             </Button>
           </div>
         </Card>
