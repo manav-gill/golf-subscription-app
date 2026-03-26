@@ -18,26 +18,32 @@ function Dashboard() {
       setLoading(true);
       setError('');
 
+      console.log('Fetching profile...');
+
       try {
-        const response = await getProfile();
+        const res = await getProfile();
+
+        console.log('Profile response:', res.data);
 
         if (!isMounted) {
           return;
         }
 
-        setProfile(response?.data?.data || null);
-      } catch (err) {
+        setProfile(res?.data?.data || null);
+      } catch (error) {
+        console.log('Error:', error?.response || error?.message);
+
         if (!isMounted) {
           return;
         }
 
-        if (err?.response?.status === 401) {
+        if (error?.response?.status === 401) {
           localStorage.removeItem('token');
           navigate('/login', { replace: true });
           return;
         }
 
-        setError(err?.response?.data?.message || 'Failed to load dashboard data.');
+        setError(error?.response?.data?.message || 'Failed to fetch user data.');
       } finally {
         if (isMounted) {
           setLoading(false);
