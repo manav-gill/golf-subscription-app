@@ -1,59 +1,132 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import DashboardLayout from '../components/layout/DashboardLayout';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
-
-const dummyWinners = [
-  { id: 'winner-1', name: 'User A', matches: 5, reward: '₹10000' },
-  { id: 'winner-2', name: 'User B', matches: 4, reward: '₹2000' },
-  { id: 'winner-3', name: 'User C', matches: 3, reward: '₹500' }
-];
-
-const initialCharities = ['Helping Hands Foundation', 'Green Earth Initiative', 'Education For All'];
-
-function generateDrawNumbers() {
-  const pool = Array.from({ length: 45 }, (_, index) => index + 1);
-  const values = [];
-
-  while (values.length < 5) {
-    const randomIndex = Math.floor(Math.random() * pool.length);
-    values.push(pool[randomIndex]);
-    pool.splice(randomIndex, 1);
-  }
-
-  return values;
-}
+import { getCharities } from '../services/charityService';
+import { addCharity, getWinners, runDraw } from '../services/adminService';
 
 function Admin() {
-  const [drawNumbers, setDrawNumbers] = useState([]);
-  const [drawRan, setDrawRan] = useState(false);
-  const [charityInput, setCharityInput] = useState('');
-  const [charities, setCharities] = useState(initialCharities);
+  const [drawResult, setDrawResult] = useState(null);
+  const [winners, setWinners] = useState([]);
+  const [charities, setCharities] = useState([]);
+  const [inputValue, setInputValue] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [runningDraw, setRunningDraw] = useState(false);
+  const [addingCharity, setAddingCharity] = useState(false);
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
-  const hasDrawResult = drawNumbers.length === 5;
+  useEffect(() => {
+    let isMounted = true;
 
-  const sortedDrawNumbers = useMemo(() => [...drawNumbers].sort((a, b) => a - b), [drawNumbers]);
+    async function loadAdminData() {
+      setLoading(true);
+      setError('');
 
-  const handleRunDraw = () => {
-    const nextDraw = generateDrawNumbers();
-    setDrawNumbers(nextDraw);
-    setDrawRan(true);
+      try {
+        const [winnersResponse, charitiesResponse] = await Promise.all([getWinners(), getCharities()]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setWinners(winnersResponse?.data?.data || []);
+        setCharities(charitiesResponse?.data?.data || []);
+      } catch (err) {
+        if (!isMounted) {
+          return;
+        }
+
+        setError(err?.response?.data?.message || 'Failed to load admin data.');
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadAdminData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const sortedDrawNumbers = useMemo(() => {
+    const numbers = drawResult?.draw?.numbers;
+    return Array.isArray(numbers) ? [...numbers].sort((a, b) => a - b) : [];
+  }, [drawResult]);
+
+  const winnerRows = useMemo(
+    () =>
+      winners.map(winner => ({
+        id: winner.id,
+        name: `User ${String(winner.user_id || '').slice(0, 8)}`,
+        matches: winner.match_count,
+        reward: winner.prize_amount || 0
+      })),
+    [winners]
+  );
+
+  const hasDrawResult = sortedDrawNumbers.length === 5;
+
+  const formatCurrency = value =>
+    new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(Number(value || 0));
+
+  const handleRunDraw = async () => {
+    setRunningDraw(true);
+    setError('');
+    setSuccessMessage('');
+
+    try {
+      const drawResponse = await runDraw();
+      const payload = drawResponse?.data?.data || null;
+      setDrawResult(payload);
+
+      const winnersResponse = await getWinners();
+      setWinners(winnersResponse?.data?.data || []);
+
+      setSuccessMessage('Draw executed successfully.');
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to run draw.');
+    } finally {
+      setRunningDraw(false);
+    }
   };
 
-  const handleAddCharity = () => {
-    const trimmedName = charityInput.trim();
+  const handleAddCharity = async () => {
+    const trimmedName = inputValue.trim();
 
     if (!trimmedName) {
       return;
     }
 
-    setCharities(previous => [...previous, trimmedName]);
-    setCharityInput('');
+    setAddingCharity(true);
+    setError('');
+    setSuccessMessage('');
+
+    try {
+      await addCharity(trimmedName);
+      setInputValue('');
+
+      const charitiesResponse = await getCharities();
+      setCharities(charitiesResponse?.data?.data || []);
+
+      setSuccessMessage('Charity added successfully.');
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to add charity.');
+    } finally {
+      setAddingCharity(false);
+    }
   };
 
-  const isAddCharityDisabled = charityInput.trim() === '';
+  const isAddCharityDisabled = inputValue.trim() === '' || addingCharity;
 
   return (
     <DashboardLayout title="Admin Panel">
@@ -61,6 +134,10 @@ function Admin() {
         <h1 className="text-3xl font-semibold text-primary">Admin Panel</h1>
         <p className="mt-1 text-secondary">Manage draws and system data</p>
       </header>
+
+      {loading ? <p className="mb-4 text-secondary">Loading...</p> : null}
+      {error ? <p className="mb-4 text-sm text-red-600">{error}</p> : null}
+      {successMessage ? <p className="mb-4 text-sm text-green-700">{successMessage}</p> : null}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card className="rounded-2xl shadow-soft hover:shadow-sm">
@@ -71,10 +148,10 @@ function Admin() {
               type="button"
               variant="primary"
               onClick={handleRunDraw}
-              disabled={drawRan}
+              disabled={runningDraw}
               className="w-full disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Run Draw
+              {runningDraw ? 'Running Draw...' : 'Run Draw'}
             </Button>
 
             {hasDrawResult ? (
@@ -99,11 +176,17 @@ function Admin() {
           <h2 className="text-xl font-semibold text-primary">Winners</h2>
 
           <ul className="mt-4 space-y-3">
-            {dummyWinners.map(winner => (
+            {winnerRows.length === 0 ? (
+              <li className="rounded-2xl border border-border bg-background p-4 text-sm text-secondary">
+                No winners available yet.
+              </li>
+            ) : null}
+
+            {winnerRows.map(winner => (
               <li key={winner.id} className="rounded-2xl border border-border bg-background p-4">
                 <p className="text-sm font-semibold text-primary">{winner.name}</p>
                 <p className="mt-1 text-sm text-secondary">{winner.matches} matches</p>
-                <p className="mt-1 text-sm font-medium text-primary">Reward: {winner.reward}</p>
+                <p className="mt-1 text-sm font-medium text-primary">Reward: {formatCurrency(winner.reward)}</p>
               </li>
             ))}
           </ul>
@@ -117,8 +200,8 @@ function Admin() {
           <Input
             type="text"
             placeholder="Enter charity name"
-            value={charityInput}
-            onChange={event => setCharityInput(event.target.value)}
+            value={inputValue}
+            onChange={event => setInputValue(event.target.value)}
           />
 
           <Button
@@ -128,14 +211,14 @@ function Admin() {
             disabled={isAddCharityDisabled}
             className="w-full md:w-auto disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Add Charity
+            {addingCharity ? 'Adding...' : 'Add Charity'}
           </Button>
         </div>
 
         <ul className="mt-4 space-y-2">
-          {charities.map((charity, index) => (
-            <li key={`${charity}-${index}`} className="rounded-2xl border border-border bg-background px-4 py-3 text-sm text-primary">
-              {charity}
+          {charities.map(charity => (
+            <li key={charity.id} className="rounded-2xl border border-border bg-background px-4 py-3 text-sm text-primary">
+              {charity.name}
             </li>
           ))}
         </ul>
