@@ -11,6 +11,9 @@ function Draw() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    console.log('Draw page mounted');
+    console.log(window.location.pathname);
+
     let isMounted = true;
 
     async function fetchDrawData() {

@@ -2,10 +2,10 @@ import { NavLink } from 'react-router-dom';
 
 const navigationItems = [
   { label: 'Dashboard', to: '/dashboard' },
-  { label: 'Scores', to: '/dashboard/scores' },
-  { label: 'Charity', to: '/dashboard/charity' },
-  { label: 'Draw', to: '/dashboard/draw' },
-  { label: 'Admin', to: '/dashboard/admin' }
+  { label: 'Scores', to: '/scores' },
+  { label: 'Charity', to: '/charity' },
+  { label: 'Draw', to: '/draw' },
+  { label: 'Admin', to: '/admin' }
 ];
 
 function Sidebar() {

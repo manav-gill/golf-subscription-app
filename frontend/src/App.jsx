@@ -2,8 +2,12 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicRoute from './components/PublicRoute';
+import Admin from './pages/Admin';
+import Charity from './pages/Charity';
 import Dashboard from './pages/Dashboard';
+import Draw from './pages/Draw';
 import Login from './pages/Login';
+import Scores from './pages/Scores';
 import Signup from './pages/Signup';
 import { login as loginRequest } from './services/authService';
 
@@ -49,6 +53,38 @@ function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/scores"
+          element={
+            <ProtectedRoute>
+              <Scores />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/charity"
+          element={
+            <ProtectedRoute>
+              <Charity />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/draw"
+          element={
+            <ProtectedRoute>
+              <Draw />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <Admin />
             </ProtectedRoute>
           }
         />

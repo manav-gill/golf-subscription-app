@@ -28,6 +28,8 @@ function Scores() {
   };
 
   useEffect(() => {
+    console.log('Scores page mounted');
+    console.log(window.location.pathname);
     fetchScores();
   }, []);
 

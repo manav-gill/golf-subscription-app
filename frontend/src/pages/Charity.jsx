@@ -16,6 +16,9 @@ function Charity() {
   const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
+    console.log('Charity page mounted');
+    console.log(window.location.pathname);
+
     let isMounted = true;
 
     async function loadCharityData() {
