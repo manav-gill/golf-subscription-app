@@ -5,7 +5,15 @@ const User = require('../models/User');
 const getCharities = async (req, res) => {
   try {
     const charities = await Charity.find({ isActive: true });
-    res.status(200).json(charities);
+    
+    // Map _id to id for the frontend
+    const mappedCharities = charities.map(c => ({
+      id: c._id,
+      name: c.name,
+      description: c.description
+    }));
+
+    res.status(200).json({ success: true, data: mappedCharities });
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch charities' });
   }
@@ -14,16 +22,18 @@ const getCharities = async (req, res) => {
 // POST /api/charities/select
 const selectCharity = async (req, res) => {
   try {
-    const { charityId } = req.body;
+    const { charityId, contributionPercentage } = req.body;
     
-    // Update the user's selectedCharity field
     const updatedUser = await User.findByIdAndUpdate(
       req.user.id,
-      { selectedCharity: charityId },
-      { new: true } // Returns the updated document
+      { 
+        charity_id: charityId,
+        contribution_percentage: contributionPercentage 
+      },
+      { new: true }
     ).select('-password');
 
-    res.status(200).json(updatedUser);
+    res.status(200).json({ success: true, data: updatedUser });
   } catch (error) {
     res.status(500).json({ message: 'Failed to select charity' });
   }

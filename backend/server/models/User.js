@@ -5,7 +5,8 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, lowercase: true },
   password: { type: String, required: true },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
-  selectedCharity: { type: mongoose.Schema.Types.ObjectId, ref: 'Charity', default: null }
+  charity_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Charity', default: null },
+  contribution_percentage: { type: Number, default: null }
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);
