@@ -6,11 +6,17 @@ const { protect } = require('../middleware/authMiddleware');
 // GET /api/winners/me
 router.get('/me', protect, async (req, res) => {
   try {
-    // .populate() pulls in the data from referenced collections using the ObjectId!
     const wins = await Winner.find({ user: req.user.id })
                              .populate('draw')
                              .populate('charity');
-    res.status(200).json(wins);
+                               
+    const mappedWins = wins.map(w => {
+      const wObj = w.toObject();
+      wObj.draw_id = wObj.draw?._id || wObj.draw; // map to draw_id string for frontend
+      return wObj;
+    });
+
+    res.status(200).json({ success: true, data: mappedWins });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching winner history' });
   }
