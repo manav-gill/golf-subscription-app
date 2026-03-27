@@ -3,19 +3,19 @@ const Score = require('../models/Score');
 // POST /api/scores
 const submitScore = async (req, res) => {
   try {
-    const { strokes, courseName } = req.body;
+    const { score, date } = req.body;
     
-    if (!strokes || !courseName) {
-      return res.status(400).json({ message: 'Please add all required fields' });
+    if (!score) {
+      return res.status(400).json({ message: 'Please add a score value' });
     }
 
-    const score = await Score.create({
+    const newScore = await Score.create({
       user: req.user.id, // Comes from protect middleware
-      strokes,
-      courseName
+      score: score,
+      datePlayed: date ? new Date(date) : Date.now()
     });
 
-    res.status(201).json(score);
+    res.status(201).json(newScore);
   } catch (error) {
     res.status(500).json({ message: 'Server error while submitting score' });
   }
@@ -25,7 +25,10 @@ const submitScore = async (req, res) => {
 const getMyScores = async (req, res) => {
   try {
     const scores = await Score.find({ user: req.user.id }).sort({ datePlayed: -1 });
-    res.status(200).json(scores);
+    res.status(200).json({
+      success: true,
+      data: scores
+    });
   } catch (error) {
     res.status(500).json({ message: 'Server error while fetching scores' });
   }

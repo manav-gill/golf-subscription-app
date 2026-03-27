@@ -1,42 +1,19 @@
 const express = require('express');
-const { body, param } = require('express-validator');
-
-const authMiddleware = require('../middleware/authMiddleware');
-const { requireRole } = require('../middleware/roleMiddleware');
-const validationMiddleware = require('../middleware/validationMiddleware');
-const winnerController = require('../controllers/winnerController');
-
 const router = express.Router();
+const Winner = require('../models/Winner');
+const { protect } = require('../middleware/authMiddleware');
 
-router.use(authMiddleware);
-
-router.get(
-  '/draw/:drawId',
-  [param('drawId').isUUID().withMessage('drawId must be a valid UUID')],
-  validationMiddleware,
-  requireRole('admin'),
-  winnerController.getWinnersByDraw
-);
-
-router.get('/me', winnerController.getMyWinnings);
-
-router.patch(
-  '/:id/verify',
-  [
-    param('id').isUUID().withMessage('id must be a valid UUID'),
-    body('status').isIn(['approved', 'paid']).withMessage('status must be either approved or paid')
-  ],
-  validationMiddleware,
-  requireRole('admin'),
-  winnerController.verifyWinnerStatus
-);
-
-router.post(
-  '/distribute/:drawId',
-  [param('drawId').isUUID().withMessage('drawId must be a valid UUID')],
-  validationMiddleware,
-  requireRole('admin'),
-  winnerController.distributePrizes
-);
+// GET /api/winners/me
+router.get('/me', protect, async (req, res) => {
+  try {
+    // .populate() pulls in the data from referenced collections using the ObjectId!
+    const wins = await Winner.find({ user: req.user.id })
+                             .populate('draw')
+                             .populate('charity');
+    res.status(200).json(wins);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching winner history' });
+  }
+});
 
 module.exports = router;
