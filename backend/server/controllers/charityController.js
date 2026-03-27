@@ -39,4 +39,16 @@ const selectCharity = async (req, res) => {
   }
 };
 
-module.exports = { getCharities, selectCharity };
+// POST /api/charities
+const addCharity = async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name) return res.status(400).json({ message: 'Charity name is required' });
+    const charity = await Charity.create({ name, description: 'Added by Admin' });
+    res.status(201).json({ success: true, data: charity });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to add charity' });
+  }
+}
+
+module.exports = { getCharities, selectCharity, addCharity };

@@ -22,4 +22,23 @@ router.get('/me', protect, async (req, res) => {
   }
 });
 
+// GET /api/winners/draw/:draw_id
+router.get('/draw/:draw_id', protect, async (req, res) => {
+  try {
+    const wins = await Winner.find({ draw: req.params.draw_id })
+                             .populate('draw')
+                             .populate('charity');
+                               
+    const mappedWins = wins.map(w => {
+      const wObj = w.toObject();
+      wObj.draw_id = wObj.draw?._id || wObj.draw;
+      return wObj;
+    });
+
+    res.status(200).json({ success: true, data: mappedWins });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching winners for draw' });
+  }
+});
+
 module.exports = router;
