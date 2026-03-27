@@ -19,6 +19,8 @@ function ensureUuidLike(id, fieldName) {
 async function getWinnersByDraw(drawId) {
   ensureUuidLike(drawId, 'Draw ID');
 
+  console.log('[winnerService.getWinnersByDraw] Fetching winners for draw', { drawId });
+
   const { data: winners, error } = await supabase
     .from('winners')
     .select('id, user_id, draw_id, match_count, prize_amount, status, created_at')
@@ -27,14 +29,25 @@ async function getWinnersByDraw(drawId) {
     .order('created_at', { ascending: true });
 
   if (error) {
-    throw new WinnerServiceError('Failed to fetch winners by draw', 500);
+    console.error('[winnerService.getWinnersByDraw] ERROR:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+      status: error.status,
+      fullError: JSON.stringify(error, null, 2)
+    });
+    throw new WinnerServiceError(`Failed to fetch winners by draw: ${error.message}`, 500);
   }
 
+  console.log('[winnerService.getWinnersByDraw] Success', { count: winners?.length || 0 });
   return winners || [];
 }
 
 async function getUserWinnings(userId) {
   ensureUuidLike(userId, 'User ID');
+
+  console.log('[winnerService.getUserWinnings] Fetching user winnings', { userId });
 
   const { data: winnings, error } = await supabase
     .from('winners')
@@ -43,9 +56,18 @@ async function getUserWinnings(userId) {
     .order('created_at', { ascending: false });
 
   if (error) {
-    throw new WinnerServiceError('Failed to fetch user winnings', 500);
+    console.error('[winnerService.getUserWinnings] ERROR:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+      status: error.status,
+      fullError: JSON.stringify(error, null, 2)
+    });
+    throw new WinnerServiceError(`Failed to fetch user winnings: ${error.message}`, 500);
   }
 
+  console.log('[winnerService.getUserWinnings] Success', { count: winnings?.length || 0 });
   return winnings || [];
 }
 

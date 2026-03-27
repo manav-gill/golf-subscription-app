@@ -1,58 +1,31 @@
 const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 
-function authMiddleware(req, res, next) {
-  const authHeader = req.headers.authorization || '';
+const protect = async (req, res, next) => {
+  let token;
 
-  if (!authHeader) {
-    return res.status(401).json({
-      success: false,
-      message: 'Authorization header is required'
-    });
-  }
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    try {
+      // Get token from header (Format: "Bearer eyJhbG...")
+      token = req.headers.authorization.split(' ')[1];
 
-  const [scheme, token] = authHeader.trim().split(' ');
-  if (scheme !== 'Bearer' || !token) {
-    return res.status(401).json({
-      success: false,
-      message: 'Authorization header must be in Bearer token format'
-    });
-  }
+      // Verify token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-  if (!process.env.JWT_SECRET) {
-    return res.status(500).json({
-      success: false,
-      message: 'JWT server configuration is missing'
-    });
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('Decoded user:', decoded);
-
-    const resolvedUserId = decoded?.id || decoded?.userId;
-
-    if (!decoded || !resolvedUserId || !decoded.role) {
-      return res.status(401).json({
-        success: false,
-        message: 'Token payload is invalid'
-      });
+      // Get user from the token (exclude password)
+      req.user = await User.findById(decoded.id).select('-password');
+      
+      console.log(`[AUTH] User verified: ${req.user.email}`);
+      next();
+    } catch (error) {
+      console.error('[AUTH ERROR]', error.message);
+      res.status(401).json({ message: 'Not authorized, token failed' });
     }
-
-    req.user = {
-      id: resolvedUserId,
-      userId: resolvedUserId,
-      role: decoded.role,
-      iat: decoded.iat,
-      exp: decoded.exp
-    };
-
-    return next();
-  } catch (error) {
-    return res.status(401).json({
-      success: false,
-      message: 'Invalid or expired token'
-    });
   }
-}
 
-module.exports = authMiddleware;
+  if (!token) {
+    res.status(401).json({ message: 'Not authorized, no token' });
+  }
+};
+
+module.exports = { protect };

@@ -53,6 +53,7 @@ async function getAllCharities() {
     .order('created_at', { ascending: false });
 
   if (error) {
+    console.error('[charityService.getAllCharities] Supabase error:', { error: error.message, code: error.code, details: error.details });
     throw new CharityServiceError('Failed to fetch charities', 500);
   }
 

@@ -1,17 +1,34 @@
 import api from './api';
 
 export async function runDraw() {
-  // Backend route: POST /draw/run (admin only)
-  const response = await api.post('/draw/run');
-  return response;
+  const endpoint = '/draw/run';
+  console.log('CALLING:', endpoint);
+
+  try {
+    const response = await api.post(endpoint);
+    return response;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || error.message || 'Failed to run draw');
+  }
 }
 
-export async function getWinners() {
-  // Backend exposes winners by draw id, so fetch current draw first.
-  const drawResponse = await api.get('/draw/current');
-  const draw = drawResponse?.data?.data || null;
+export async function getWinners(drawId) {
+  let resolvedDrawId = drawId;
 
-  if (!draw?.id) {
+  if (!resolvedDrawId) {
+    const drawEndpoint = '/draw/current';
+    console.log('CALLING:', drawEndpoint);
+
+    try {
+      const drawResponse = await api.get(drawEndpoint);
+      const draw = drawResponse?.data?.data || null;
+      resolvedDrawId = draw?.id;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || error.message || 'Failed to resolve current draw');
+    }
+  }
+
+  if (!resolvedDrawId) {
     return {
       data: {
         success: true,
@@ -20,15 +37,29 @@ export async function getWinners() {
     };
   }
 
-  const winnersResponse = await api.get(`/winners/draw/${draw.id}`);
-  return winnersResponse;
+  const endpoint = `/winners/draw/${resolvedDrawId}`;
+  console.log('CALLING:', endpoint);
+
+  try {
+    const winnersResponse = await api.get(endpoint);
+    return winnersResponse;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || error.message || 'Failed to fetch winners');
+  }
 }
 
 export async function addCharity(name) {
+  const endpoint = '/charities';
+  console.log('CALLING:', endpoint);
+
   const payload = {
     name
   };
 
-  const response = await api.post('/charities', payload);
-  return response;
+  try {
+    const response = await api.post(endpoint, payload);
+    return response;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || error.message || 'Failed to create charity');
+  }
 }

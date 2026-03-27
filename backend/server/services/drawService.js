@@ -23,6 +23,8 @@ async function createDraw() {
   const month = now.getUTCMonth() + 1;
   const year = now.getUTCFullYear();
 
+  console.log('[drawService.createDraw] Checking for existing draw', { month, year });
+
   const { data: existingDraw, error: checkError } = await supabase
     .from('draws')
     .select('id')
@@ -31,14 +33,21 @@ async function createDraw() {
     .maybeSingle();
 
   if (checkError) {
-    throw new DrawServiceError('Failed to verify monthly draw', 500);
+    console.error('[drawService.createDraw] CHECK ERROR:', {
+      message: checkError.message,
+      code: checkError.code,
+      details: checkError.details
+    });
+    throw new DrawServiceError(`Failed to verify monthly draw: ${checkError.message}`, 500);
   }
 
   if (existingDraw) {
+    console.log('[drawService.createDraw] Draw already exists for this month', { drawId: existingDraw.id });
     throw new DrawServiceError('A draw already exists for this month', 409);
   }
 
   const numbers = generateRandomNumbers();
+  console.log('[drawService.createDraw] Generated random numbers', { numbers });
 
   const { data: createdDraw, error: createError } = await supabase
     .from('draws')
@@ -51,16 +60,27 @@ async function createDraw() {
     .single();
 
   if (createError) {
+    console.error('[drawService.createDraw] INSERT ERROR:', {
+      message: createError.message,
+      code: createError.code,
+      details: createError.details,
+      hint: createError.hint,
+      status: createError.status,
+      fullError: JSON.stringify(createError, null, 2)
+    });
     if (createError.code === '23505') {
       throw new DrawServiceError('A draw already exists for this month', 409);
     }
-    throw new DrawServiceError('Failed to create draw', 500);
+    throw new DrawServiceError(`Failed to create draw: ${createError.message}`, 500);
   }
 
+  console.log('[drawService.createDraw] Draw created successfully', { drawId: createdDraw.id });
   return createdDraw;
 }
 
 async function getCurrentDraw() {
+  console.log('[drawService.getCurrentDraw] Fetching most recent draw');
+  
   const { data: draw, error: drawError } = await supabase
     .from('draws')
     .select('id, numbers, month, year, created_at')
@@ -71,12 +91,24 @@ async function getCurrentDraw() {
     .maybeSingle();
 
   if (drawError) {
-    throw new DrawServiceError('Failed to fetch current draw', 500);
+    console.error('[drawService.getCurrentDraw] DRAW FETCH ERROR:', {
+      message: drawError.message,
+      code: drawError.code,
+      details: drawError.details,
+      hint: drawError.hint,
+      status: drawError.status,
+      fullError: JSON.stringify(drawError, null, 2)
+    });
+    throw new DrawServiceError(`Failed to fetch current draw: ${drawError.message}`, 500);
   }
 
   if (!draw) {
+    console.log('[drawService.getCurrentDraw] No draw found (this is OK if no draws exist yet)');
     return null;
   }
+
+  console.log('[drawService.getCurrentDraw] Draw found', { drawId: draw.id });
+  console.log('[drawService.getCurrentDraw] Fetching winners for draw');
 
   const { data: winners, error: winnersError } = await supabase
     .from('winners')
@@ -86,9 +118,18 @@ async function getCurrentDraw() {
     .order('created_at', { ascending: true });
 
   if (winnersError) {
-    throw new DrawServiceError('Failed to fetch draw winners', 500);
+    console.error('[drawService.getCurrentDraw] WINNERS FETCH ERROR:', {
+      message: winnersError.message,
+      code: winnersError.code,
+      details: winnersError.details,
+      hint: winnersError.hint,
+      status: winnersError.status,
+      fullError: JSON.stringify(winnersError, null, 2)
+    });
+    throw new DrawServiceError(`Failed to fetch draw winners: ${winnersError.message}`, 500);
   }
 
+  console.log('[drawService.getCurrentDraw] Success', { winnersCount: winners?.length || 0 });
   return {
     ...draw,
     winners: winners || []

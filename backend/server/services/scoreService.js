@@ -61,6 +61,8 @@ async function getUserScores(userId) {
     throw new ScoreServiceError('User ID is required', 400);
   }
 
+  console.log('[scoreService.getUserScores] Attempting to fetch scores', { userId });
+
   const { data: scores, error } = await supabase
     .from('scores')
     .select('id, user_id, score, date, created_at')
@@ -70,9 +72,18 @@ async function getUserScores(userId) {
     .limit(5);
 
   if (error) {
-    throw new ScoreServiceError('Failed to fetch user scores', 500);
+    console.error('[scoreService.getUserScores] SUPABASE ERROR DETAILS:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+      status: error.status,
+      fullError: JSON.stringify(error, null, 2)
+    });
+    throw new ScoreServiceError(`Failed to fetch scores: ${error.message}`, 500);
   }
 
+  console.log('[scoreService.getUserScores] Success', { count: scores?.length || 0 });
   return scores || [];
 }
 
@@ -84,8 +95,10 @@ async function addScore(userId, score, date) {
   const parsedScore = validateScoreValue(score);
   const parsedDate = validateScoreDate(date);
 
+  console.log('[scoreService.addScore] Validating subscription', { userId, parsedScore, parsedDate });
   await ensureActiveSubscription(userId);
 
+  console.log('[scoreService.addScore] Attempting to insert score', { userId, parsedScore, parsedDate });
   const { error: insertError } = await supabase
     .from('scores')
     .insert({
@@ -95,9 +108,18 @@ async function addScore(userId, score, date) {
     });
 
   if (insertError) {
-    throw new ScoreServiceError('Failed to add score', 500);
+    console.error('[scoreService.addScore] INSERT ERROR DETAILS:', {
+      message: insertError.message,
+      code: insertError.code,
+      details: insertError.details,
+      hint: insertError.hint,
+      status: insertError.status,
+      fullError: JSON.stringify(insertError, null, 2)
+    });
+    throw new ScoreServiceError(`Failed to add score: ${insertError.message}`, 500);
   }
 
+  console.log('[scoreService.addScore] Insert successful, fetching all scores to apply rolling limit');
   const { data: allScoreIds, error: fetchIdsError } = await supabase
     .from('scores')
     .select('id')
@@ -106,11 +128,17 @@ async function addScore(userId, score, date) {
     .order('created_at', { ascending: false });
 
   if (fetchIdsError) {
+    console.error('[scoreService.addScore] FETCH IDS ERROR:', {
+      message: fetchIdsError.message,
+      code: fetchIdsError.code,
+      details: fetchIdsError.details
+    });
     throw new ScoreServiceError('Failed to apply rolling score limit', 500);
   }
 
   if (allScoreIds && allScoreIds.length > 5) {
     const idsToDelete = allScoreIds.slice(5).map((entry) => entry.id);
+    console.log('[scoreService.addScore] Removing old scores', { count: idsToDelete.length, idsToDelete });
 
     const { error: deleteError } = await supabase
       .from('scores')
@@ -118,10 +146,16 @@ async function addScore(userId, score, date) {
       .in('id', idsToDelete);
 
     if (deleteError) {
+      console.error('[scoreService.addScore] DELETE ERROR:', {
+        message: deleteError.message,
+        code: deleteError.code,
+        details: deleteError.details
+      });
       throw new ScoreServiceError('Failed to remove old scores', 500);
     }
   }
 
+  console.log('[scoreService.addScore] Complete, fetching updated scores');
   return getUserScores(userId);
 }
 

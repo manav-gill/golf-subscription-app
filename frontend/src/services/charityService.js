@@ -1,36 +1,58 @@
 import api from './api';
 
 export async function getCharities() {
-  const response = await api.get('/charities');
-  return response;
+  const endpoint = '/charities';
+  console.log('CALLING:', endpoint);
+
+  try {
+    const response = await api.get(endpoint);
+    return response;
+  } catch (error) {
+    console.log('FULL ERROR:', error.response || error.message);
+    throw error;
+  }
 }
 
 export async function getUserCharity() {
-  // Backend currently exposes user profile at /users/me.
-  const response = await api.get('/users/me');
+  const endpoint = '/users/me';
+  console.log('CALLING:', endpoint);
 
-  const profile = response?.data?.data || null;
+  try {
+    const response = await api.get(endpoint);
+    const profile = response?.data?.data || null;
 
-  return {
-    ...response,
-    data: {
-      ...response.data,
-      data: profile
-        ? {
-            charityId: profile.charity_id || null,
-            contributionPercentage: profile.contribution_percentage ?? null
-          }
-        : null
-    }
-  };
+    return {
+      ...response,
+      data: {
+        ...response.data,
+        data: profile
+          ? {
+              charityId: profile.charity_id || null,
+              contributionPercentage: profile.contribution_percentage ?? null
+            }
+          : null
+      }
+    };
+  } catch (error) {
+    console.log('FULL ERROR:', error.response || error.message);
+    throw error;
+  }
 }
 
 export async function saveUserCharity(data) {
+  const endpoint = '/charities/select';
+  console.log('CALLING:', endpoint);
+
   const payload = {
     charityId: data?.charityId,
     contributionPercentage: data?.percentage
   };
 
-  const response = await api.post('/charities/select', payload);
-  return response;
+  try {
+    const response = await api.post(endpoint, payload);
+    return response;
+  } catch (error) {
+    console.log('FULL ERROR:', error.response || error.message);
+    throw error;
+  }
 }

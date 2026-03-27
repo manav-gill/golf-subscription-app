@@ -65,7 +65,7 @@ function App() {
           }
         />
         <Route
-          path="/charity"
+          path="/charities"
           element={
             <ProtectedRoute>
               <Charity />

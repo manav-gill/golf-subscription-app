@@ -1,52 +1,34 @@
-const { validationResult } = require('express-validator');
+const Score = require('../models/Score');
 
-const scoreService = require('../services/scoreService');
-
-async function addScore(req, res) {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      message: 'Validation failed',
-      errors: errors.array()
-    });
-  }
-
+// POST /api/scores
+const submitScore = async (req, res) => {
   try {
-    const { score, date } = req.body;
-    const scores = await scoreService.addScore(req.user.userId, score, date);
+    const { strokes, courseName } = req.body;
+    
+    if (!strokes || !courseName) {
+      return res.status(400).json({ message: 'Please add all required fields' });
+    }
 
-    return res.status(201).json({
-      success: true,
-      message: 'Score added successfully',
-      data: scores
+    const score = await Score.create({
+      user: req.user.id, // Comes from protect middleware
+      strokes,
+      courseName
     });
+
+    res.status(201).json(score);
   } catch (error) {
-    return res.status(error.status || 500).json({
-      success: false,
-      message: error.message || 'Failed to add score'
-    });
+    res.status(500).json({ message: 'Server error while submitting score' });
   }
-}
-
-async function getScores(req, res) {
-  try {
-    const scores = await scoreService.getUserScores(req.user.userId);
-
-    return res.status(200).json({
-      success: true,
-      message: 'Scores fetched successfully',
-      data: scores
-    });
-  } catch (error) {
-    return res.status(error.status || 500).json({
-      success: false,
-      message: error.message || 'Failed to fetch scores'
-    });
-  }
-}
-
-module.exports = {
-  addScore,
-  getScores
 };
+
+// GET /api/scores
+const getMyScores = async (req, res) => {
+  try {
+    const scores = await Score.find({ user: req.user.id }).sort({ datePlayed: -1 });
+    res.status(200).json(scores);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error while fetching scores' });
+  }
+};
+
+module.exports = { submitScore, getMyScores };

@@ -2,6 +2,10 @@ const { validationResult } = require('express-validator');
 
 const winnerService = require('../services/winnerService');
 
+function resolveUserId(req) {
+  return req.user?.id || req.user?.userId;
+}
+
 function handleValidation(req, res) {
   const errors = validationResult(req);
   if (errors.isEmpty()) {
@@ -16,6 +20,14 @@ function handleValidation(req, res) {
 }
 
 async function getWinnersByDraw(req, res) {
+  const userId = resolveUserId(req);
+  console.log('[winnerController.getWinnersByDraw] route hit', {
+    method: req.method,
+    path: req.originalUrl,
+    userId,
+    drawId: req.params.drawId
+  });
+
   const validationErrorResponse = handleValidation(req, res);
   if (validationErrorResponse) {
     return validationErrorResponse;
@@ -30,6 +42,12 @@ async function getWinnersByDraw(req, res) {
       data: winners
     });
   } catch (error) {
+    console.error('[winnerController.getWinnersByDraw] failed', {
+      userId,
+      drawId: req.params.drawId,
+      error: error.message,
+      status: error.status
+    });
     return res.status(error.status || 500).json({
       success: false,
       message: error.message || 'Failed to fetch winners'
@@ -38,8 +56,15 @@ async function getWinnersByDraw(req, res) {
 }
 
 async function getMyWinnings(req, res) {
+  const userId = resolveUserId(req);
+  console.log('[winnerController.getMyWinnings] route hit', {
+    method: req.method,
+    path: req.originalUrl,
+    userId
+  });
+
   try {
-    const winnings = await winnerService.getUserWinnings(req.user.userId);
+    const winnings = await winnerService.getUserWinnings(userId);
 
     return res.status(200).json({
       success: true,
@@ -47,6 +72,11 @@ async function getMyWinnings(req, res) {
       data: winnings
     });
   } catch (error) {
+    console.error('[winnerController.getMyWinnings] failed', {
+      userId,
+      error: error.message,
+      status: error.status
+    });
     return res.status(error.status || 500).json({
       success: false,
       message: error.message || 'Failed to fetch user winnings'
@@ -55,6 +85,15 @@ async function getMyWinnings(req, res) {
 }
 
 async function verifyWinnerStatus(req, res) {
+  const userId = resolveUserId(req);
+  console.log('[winnerController.verifyWinnerStatus] route hit', {
+    method: req.method,
+    path: req.originalUrl,
+    userId,
+    winnerId: req.params.id,
+    body: req.body
+  });
+
   const validationErrorResponse = handleValidation(req, res);
   if (validationErrorResponse) {
     return validationErrorResponse;
@@ -69,6 +108,12 @@ async function verifyWinnerStatus(req, res) {
       data: updatedWinner
     });
   } catch (error) {
+    console.error('[winnerController.verifyWinnerStatus] failed', {
+      userId,
+      winnerId: req.params.id,
+      error: error.message,
+      status: error.status
+    });
     return res.status(error.status || 500).json({
       success: false,
       message: error.message || 'Failed to update winner status'
@@ -77,6 +122,14 @@ async function verifyWinnerStatus(req, res) {
 }
 
 async function distributePrizes(req, res) {
+  const userId = resolveUserId(req);
+  console.log('[winnerController.distributePrizes] route hit', {
+    method: req.method,
+    path: req.originalUrl,
+    userId,
+    drawId: req.params.drawId
+  });
+
   const validationErrorResponse = handleValidation(req, res);
   if (validationErrorResponse) {
     return validationErrorResponse;
@@ -91,6 +144,12 @@ async function distributePrizes(req, res) {
       data: distribution
     });
   } catch (error) {
+    console.error('[winnerController.distributePrizes] failed', {
+      userId,
+      drawId: req.params.drawId,
+      error: error.message,
+      status: error.status
+    });
     return res.status(error.status || 500).json({
       success: false,
       message: error.message || 'Failed to distribute prizes'

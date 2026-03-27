@@ -1,6 +1,13 @@
 const drawService = require('../services/drawService');
 
 async function runDraw(req, res) {
+  const userId = req.user?.id || req.user?.userId;
+  console.log('[drawController.runDraw] route hit', {
+    method: req.method,
+    path: req.originalUrl,
+    userId
+  });
+
   try {
     const draw = await drawService.createDraw();
     const summary = await drawService.evaluateWinners(draw.id);
@@ -14,6 +21,11 @@ async function runDraw(req, res) {
       }
     });
   } catch (error) {
+    console.error('[drawController.runDraw] failed', {
+      userId,
+      error: error.message,
+      status: error.status
+    });
     return res.status(error.status || 500).json({
       success: false,
       message: error.message || 'Failed to run draw'
@@ -22,6 +34,13 @@ async function runDraw(req, res) {
 }
 
 async function getCurrentDraw(req, res) {
+  const userId = req.user?.id || req.user?.userId;
+  console.log('[drawController.getCurrentDraw] route hit', {
+    method: req.method,
+    path: req.originalUrl,
+    userId
+  });
+
   try {
     const draw = await drawService.getCurrentDraw();
 
@@ -38,6 +57,11 @@ async function getCurrentDraw(req, res) {
       data: draw
     });
   } catch (error) {
+    console.error('[drawController.getCurrentDraw] failed', {
+      userId,
+      error: error.message,
+      status: error.status
+    });
     return res.status(error.status || 500).json({
       success: false,
       message: error.message || 'Failed to fetch current draw'

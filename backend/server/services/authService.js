@@ -123,16 +123,19 @@ async function loginUser(email, password) {
   const normalizedEmail = String(email || '').trim().toLowerCase();
   const rawPassword = String(password || '');
 
-  console.log('Login service step: input normalization complete', {
+  console.log('[LOGIN] ===== LOGIN STARTED =====');
+  console.log('[LOGIN] Input normalization:', {
     hasEmail: Boolean(normalizedEmail),
-    hasPassword: Boolean(rawPassword)
+    hasPassword: Boolean(rawPassword),
+    emailValue: normalizedEmail
   });
 
   if (!normalizedEmail || !rawPassword) {
+    console.error('[LOGIN] Missing email or password');
     throw new AuthServiceError('Email and password are required', 400);
   }
 
-  console.log('Login service step: fetching user by email');
+  console.log('[LOGIN] Calling Supabase: SELECT users WHERE email = ?');
   const { data: user, error: findError } = await supabase
     .from('users')
     .select('id, email, password, role, created_at')
@@ -140,29 +143,57 @@ async function loginUser(email, password) {
     .maybeSingle();
 
   if (findError) {
-    console.error('Login service find user error:', findError);
+    console.error('[LOGIN] ❌ SUPABASE ERROR:', {
+      message: findError.message,
+      code: findError.code,
+      details: findError.details,
+      hint: findError.hint,
+      fullError: JSON.stringify(findError, null, 2)
+    });
 
     if (findError.code === 'PGRST205') {
       throw new AuthServiceError('Database error: users table not found. Run users table migration.', 500);
     }
 
+    if (findError.code === 'PGRST301') {
+      throw new AuthServiceError('RLS policy blocking user lookup. Backend needs service role access to users table. Run USERS_TABLE_RLS_FIX.sql in Supabase.', 500);
+    }
+
     throw new AuthServiceError(`Database error: ${findError.message}`, 500);
   }
 
+  console.log('[LOGIN] Database query result:', {
+    userFound: !!user,
+    userId: user?.id || 'NOT_FOUND',
+    userEmail: user?.email || 'NOT_FOUND',
+    hasPassword: !!user?.password,
+    passwordLength: user?.password?.length || 0,
+    passwordPrefix: user?.password?.substring(0, 15) || 'N/A'
+  });
+
   if (!user) {
+    console.error('[LOGIN] ❌ User not found in database with email:', normalizedEmail);
     throw new AuthServiceError('Invalid email or password', 401);
   }
 
-  console.log('Login service step: password compare start');
+  console.log('[LOGIN] ✅ User found, now comparing password');
   const isPasswordValid = await bcrypt.compare(rawPassword, user.password);
-  console.log('Login service step: password compare complete');
+  
+  console.log('[LOGIN] Password comparison result:', {
+    isValid: isPasswordValid,
+    inputPasswordLength: rawPassword.length,
+    storedHashLength: user.password.length,
+    storedHashFormat: user.password.substring(0, 20)
+  });
+
   if (!isPasswordValid) {
+    console.error('[LOGIN] ❌ Password does not match');
     throw new AuthServiceError('Invalid email or password', 401);
   }
 
-  console.log('Login service step: token generation start');
+  console.log('[LOGIN] ✅ Password valid, generating JWT token');
   const token = generateToken(user.id, user.role);
-  console.log('Login service step: token generation complete');
+  console.log('[LOGIN] ✅ LOGIN SUCCESSFUL');
 
   return {
     token,
